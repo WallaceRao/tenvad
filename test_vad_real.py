@@ -3,10 +3,10 @@ import json
 import os
 
 # 测试API
-url = "http://localhost:8001/vad_detect/"
+url = "http://localhost:9000/vad_detect/"
 
 # 检查音频文件是否存在
-audio_file_path = "cosyvoice3_result_dongbei.wav"
+audio_file_path = "adjusted_9_longer.wav"
 if not os.path.exists(audio_file_path):
     print(f"音频文件 {audio_file_path} 不存在")
     exit(1)

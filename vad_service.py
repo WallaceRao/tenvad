@@ -171,7 +171,8 @@ def adjust_audio_length(audio_data: np.ndarray, sample_rate: int, target_duratio
     original_duration = len(audio_data) / sample_rate
     # 计算需要裁剪或扩充的时长
     duration_diff = original_duration - target_duration
-    logger.info(f"duration_diff:", duration_diff)
+    print(f"original_duration:", original_duration, 'target_duration:', target_duration)
+    logger.info(f"duration_diff:{duration_diff}")
     if abs(duration_diff) < 0.1:  # 如果差异很小，直接返回原音频
         return audio_data
     
@@ -469,7 +470,6 @@ async def adjust_audio_length_endpoint(
         
         # 保存调整后的音频到内存中的字节流
         buffer = io.BytesIO()
-        logger.info(f"adjusted_audio:{adjusted_audio}")
         sf.write(buffer, adjusted_audio, sample_rate, format='WAV')
         buffer.seek(0)
         
