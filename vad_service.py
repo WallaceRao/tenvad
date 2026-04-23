@@ -172,7 +172,7 @@ def adjust_audio_length(audio_data: np.ndarray, sample_rate: int, target_duratio
     # 计算需要裁剪或扩充的时长
     duration_diff = original_duration - target_duration
     print(f"original_duration:", original_duration, 'target_duration:', target_duration)
-    logger.info(f"duration_diff:{duration_diff}")
+    logger.info(f"adjust_audio_length from {original_duration} to {target_duration} with duration_diff:{duration_diff}")
     if abs(duration_diff) < 0.1:  # 如果差异很小，直接返回原音频
         return audio_data
     
@@ -258,7 +258,7 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
     # 计算总静音时长
     total_silence_duration = sum(seg[1] - seg[0] for seg in silence_segments)
     
-    if total_silence_duration <= 0:  # 如果没有静音段，使用PV-TSM算法
+    if total_silence_duration < 0.01:  # 如果没有静音段，使用PV-TSM算法
         # 使用pytsmod的PV-TSM算法将音频调整为目标长度
         ratio = target_duration / total_duration
         adjusted_audio = pytsmod.wsola(audio_data.astype(np.float32), 
@@ -266,7 +266,13 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
         return adjusted_audio.astype(audio_data.dtype)
     
     # 检查是否可以通过调整静音段来达到目标长度
-    if total_silence_duration * 3 >= duration_to_add:
+    enlarge_silence_ratio = 3.0 / total_silence_duration
+    if enlarge_silence_ratio < 2.5:
+        enlarge_silence_ratio = 2.5
+    logger.info(f"enlarge_silence_ratio:{enlarge_silence_ratio}, total_silence_duration:{total_silence_duration}, duration_to_add:{duration_to_add}")
+    print(f"enlarge_silence_ratio:{enlarge_silence_ratio}, total_silence_duration:{total_silence_duration}, duration_to_add:{duration_to_add}")
+
+    if total_silence_duration * enlarge_silence_ratio >= duration_to_add:
         # 情况a: 按比例计算每段静音扩充后的长度
         new_silence_segments = []
         for silence_seg in silence_segments:
@@ -275,12 +281,17 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
             new_duration = seg_duration + (seg_duration * duration_to_add / total_silence_duration)
             new_silence_segments.append(new_duration)
     else:
-        # 情况b: 静音不够用，将每段静音时长调整为当前的3倍
+        # 情况b: 静音不够用，将每段静音时长调整为当前的enlarge_silence_ratio倍
+        index = 0
         new_silence_segments = []
         for silence_seg in silence_segments:
             seg_duration = silence_seg[1] - silence_seg[0]
-            new_duration = seg_duration * 3.0
+            new_duration = seg_duration * enlarge_silence_ratio
+            if index == 0 and new_duration > 0.6:
+                # 第一段静音尽量短一些
+                new_duration = max(0.6, seg_duration)
             new_silence_segments.append(new_duration)
+            index = index + 1
     
     # 重建音频
     reconstructed_audio = _reconstruct_audio_with_new_silence(audio_data, sample_rate, voice_segments, 
@@ -467,6 +478,7 @@ async def adjust_audio_length_endpoint(
             target_duration, 
             voice_segments
         )
+        logger.info(f"adjust_audio_length  from {len(audio_data) / sample_rate} to {target_duration}, result duration:{len(adjusted_audio) / sample_rate}")
         
         # 保存调整后的音频到内存中的字节流
         buffer = io.BytesIO()
@@ -497,4 +509,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8061)

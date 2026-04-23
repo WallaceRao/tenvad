@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # 测试API
-base_url = "http://localhost:9000"
+base_url = "http://localhost:8061"
 
 # 检查音频文件是否存在
 audio_file_path = "9.wav"
