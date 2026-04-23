@@ -464,7 +464,7 @@ async def adjust_audio_length_endpoint(
         
         # 读取上传的音频文件
         contents = await audio_file.read()
-        
+        file_name = audio_file.filename
         # 使用librosa读取音频
         audio_data, sample_rate = librosa.load(io.BytesIO(contents), sr=16000)
         #logger.info(f"audio_data:{audio_data}")
@@ -478,7 +478,7 @@ async def adjust_audio_length_endpoint(
             target_duration, 
             voice_segments
         )
-        logger.info(f"adjust_audio_length  from {len(audio_data) / sample_rate} to {target_duration}, result duration:{len(adjusted_audio) / sample_rate}")
+        logger.info(f"adjust_audio_length file_name:{file_name} from {len(audio_data) / sample_rate} to {target_duration}, result duration:{len(adjusted_audio) / sample_rate}")
         
         # 保存调整后的音频到内存中的字节流
         buffer = io.BytesIO()
