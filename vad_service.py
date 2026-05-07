@@ -242,7 +242,7 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
     """
     total_duration = len(audio_data) / sample_rate
     # 如果target_duration  < 1.4s，直接在当前音频前后添加静音 延长到target_duration秒
-    if target_duration < 1.4:
+    if target_duration < 1.4 or target_duration - total_duration < 0.8:
         padding_duration = target_duration - total_duration
         padding_samples = int(padding_duration * sample_rate)
         head_padding_samples = int(padding_duration * sample_rate * 1.0 / 3.0)
@@ -250,9 +250,8 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
         head_padding = np.zeros(head_padding_samples, dtype=audio_data.dtype)
         tail_padding = np.zeros(tail_padding_samples, dtype=audio_data.dtype)
         return np.concatenate((head_padding, audio_data, tail_padding))
-    
+
     # 获取静音段
-    
     silence_segments = get_silence_segments(total_duration, voice_segments)
     
     # 计算总静音时长
@@ -297,7 +296,7 @@ def _adjust_audio_longer(audio_data: np.ndarray, sample_rate: int, target_durati
     reconstructed_audio = _reconstruct_audio_with_new_silence(audio_data, sample_rate, voice_segments, 
                                                            silence_segments, new_silence_segments)
     
-    # 如果重建后仍未达到目标长度，使用PV-TSM算法
+    # 如果重建后仍未达到目标长度，继续添加静音
     current_duration = len(reconstructed_audio) / sample_rate
     if current_duration < target_duration:
         padding_duration = (target_duration - current_duration)
